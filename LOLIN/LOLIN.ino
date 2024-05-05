@@ -24,6 +24,13 @@ WakeOnLan WOL(UDP);  // Pass WiFiUDP class
 #include <SPI.h>
 #include <TFT_eSPI.h>
 #include "Back.h"
+#include "Wifi0.h"
+#include "Wifi1.h"
+#include "Wifi2.h"
+#include "Wifi3.h"
+#include "Wifi4.h"
+#include "Wifi5.h"
+#include "Wifi6.h"
 
 //Sensor
 #include <OneWire.h>
@@ -136,22 +143,8 @@ void loop() {
   webSocket.loop();
   MDNS.update();
   ArduinoOTA.handle();
-  //SensorCheck();
   dispUpd();
   Clock();
-
-  if (websocketStarted && millis() > nextWebSocketUpdateTime) {
-
-    nextWebSocketUpdateTime = millis() + 30;
-    int a = analogRead(A0);
-
-    uint8_t values[] = {
-      ((uint8_t)(a >> 8)) & 0xFF,
-      ((uint8_t)a) & 0xFF,
-
-    };
-    webSocket.broadcastBIN(values, 2);
-  }
 }
 
 void dispUpd() {
@@ -161,9 +154,7 @@ void dispUpd() {
   float memold;
   float memcur;
 
-
-
-  if (millis() - tmr >= 30000) {
+  if (millis() - tmr >= 30000 || tmr == 0) {
 
     tmr = millis();
 
@@ -175,6 +166,9 @@ void dispUpd() {
 
     float memcurmat = ESP.getFreeHeap();  //получение FreeRAM
     memcur = memcurmat / 8000;
+
+    int rssi = WiFi.RSSI();
+    WifiSignal(rssi);
 
     // загружаем шрифт
     if (temp != tempold) {
@@ -219,21 +213,26 @@ void displog(String text) {
   tft.unloadFont();
 }
 
-/*void SensorCheck() {
-  hum =       //event.temperature;
-  temp = dht.readTemperature();  //event.relative_humidity;
-}*/
-
 void WakePC() {
   const char *MACAddress = "00:D8:61:53:A7:69";
   WOL.sendMagicPacket(MACAddress);
 }
 
-
-
 void PngRead() {
   tft.setSwapBytes(true);
   tft.pushImage(0, 0, 240, 240, Back);
+  tft.setSwapBytes(false);
+}
+
+void WifiSignal(int sig)
+{
+  tft.setSwapBytes(true);
+  if(sig > -30){ tft.pushImage(128, 189, 30, 40, Wifi6); }
+  if(sig < -55){ tft.pushImage(128, 189, 30, 40, Wifi5); }
+  if(sig < -67){ tft.pushImage(128, 189, 30, 40, Wifi4); }
+  if(sig < -70){ tft.pushImage(128, 189, 30, 40, Wifi3); }
+  if(sig < -80){ tft.pushImage(128, 189, 30, 40, Wifi2); }
+  if(sig < -90){ tft.pushImage(128, 189, 30, 40, Wifi1); }
   tft.setSwapBytes(false);
 }
 
@@ -250,17 +249,19 @@ void Clock() {
 
   if (millis() - tmrCl >= 60000) {
     tmrCl = millis();
-    
-    
+    char clockstr[16];
     uint32_t sec = millis() / 1000ul;      // полное количество секунд
     int Hours = (sec / 3600ul);        // часы
     int Mins = (sec % 3600ul) / 60ul;  // минуты
     int Day = (Hours % 3600ul) / 24ul;
-    tft.fillRect(30, 135, 50, 20, 0x4982);
+    tft.fillRect(30, 135, 85, 20, 0x4982);
     tft.loadFont("couriernew12", LittleFS);
     tft.setTextColor(0xFD49);  //текст
     tft.setCursor(30, 135);
-    tft.print(String(Day) + "d " + String(Hours) + ":" + String(Mins));
+    if(Day > 0) { Hours -= Day * 24; }
+    sprintf(clockstr,"%02u d %02u:%02u", Day, Hours, Mins);
+    //tft.print(String(Day) + "d " + String(Hours) + ":" + String(Mins));
+    tft.print(clockstr);
     tft.unloadFont();
   }
 }
@@ -268,8 +269,8 @@ void Clock() {
 void SendToWeb() {
   float memcurmat = ESP.getFreeHeap();
   float mem = memcurmat / 8000;
-
-  String Data = String(temp, 2) + "_" + String(hum, 2) + "_" + String(mem, 2);
+  long rssi = WiFi.RSSI();
+  String Data = String(temp, 2) + "_" + String(hum, 2) + "_" + String(mem, 2) + "_" + String(rssi, 2);
 
   webSocket.broadcastTXT(Data);
 }
