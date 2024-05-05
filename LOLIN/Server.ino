@@ -18,19 +18,6 @@ void startWebServer()
     }
   });
 
-  /*server.on("/wol", HTTP_GET, [](AsyncWebServerRequest * request)
-  {
-    if (request->hasParam("wake"))
-    {
-      WakePC();
-      AsyncWebParameter *LogText = request->getParam("wake");
-      String log = LogText->value();
-      request->send(200);
-    } else {
-      request->send(404);
-    }
-  });*/
-
   server.on("/reset_wifi", HTTP_GET, [](AsyncWebServerRequest * request) {
     
     request->send(200, "text/html", "Wifi reset");
