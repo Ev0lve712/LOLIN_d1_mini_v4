@@ -30,14 +30,6 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t lenght)
         SendToWeb();
       }
 
-      if(strncmp((char *)payload, "setClock", 8) == 0) {
-        int a;
-        int b;
-        scanf("%d:%d", &a, &b);
-        SetHourse = a;
-        SetMinutes = b;
-      }
-
       break;
     case WStype_DISCONNECTED:  // if the websocket is disconnected
       ConnectedStatusDisconnected();
